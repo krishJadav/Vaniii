@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>proposal.exe</title>
+<style>
+  :root{
+    --bg: #0a0e14;
+    --bg-panel: #0f1420;
+    --line: #1c2333;
+    --text: #c9d1d9;
+    --text-dim: #5b6472;
+    --keyword: #ff7edb;
+    --string: #7ee3a3;
+    --number: #ffd479;
+    --accent: #5ad8ff;
+    --heart: #ff6b9d;
+    --heart-glow: #ff8fb3;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  body{
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(90,216,255,0.05), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(255,107,157,0.06), transparent 40%);
+  }
+
+  .wrap{
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 20px 120px;
+  }
+
+  /* ---------- Terminal chrome ---------- */
+  .terminal{
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 30px 80px -20px rgba(0,0,0,0.6);
+    overflow: hidden;
+  }
+  .titlebar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding: 12px 16px;
+    background: #0c1119;
+    border-bottom: 1px solid var(--line);
+  }
+  .dot{width:11px; height:11px; border-radius:50%;}
+  .dot.r{background:#ff5f56;}
+  .dot.y{background:#ffbd2e;}
+  .dot.g{background:#27c93f;}
+  .filename{
+    margin-left: 10px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  .screen{
+    padding: 28px 24px 40px;
+    font-size: 14.5px;
+    line-height: 1.75;
+  }
+  @media (min-width:600px){ .screen{ font-size: 15.5px; } }
+
+  .line{ white-space: pre-wrap; word-break: break-word; opacity:0; }
+  .line.show{ opacity:1; }
+  .c-key{color:var(--keyword);}
+  .c-str{color:var(--string);}
+  .c-num{color:var(--number);}
+  .c-fn{color:var(--accent);}
+  .c-com{color:var(--text-dim); font-style:italic;}
+  .c-plain{color:var(--text);}
+
+  .caret{
+    display:inline-block;
+    width:8px; height:1em;
+    background:var(--accent);
+    vertical-align:-2px;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink{ 50%{opacity:0;} }
+
+  /* ---------- Reveal section ---------- */
+  #finale{
+    display:none;
+    text-align:center;
+    padding-top: 10px;
+  }
+  #finale.show{ display:block; }
+
+  .heart-ascii{
+    color: var(--heart);
+    font-size: 12px;
+    line-height: 1.15;
+    white-space: pre;
+    text-shadow: 0 0 18px var(--heart-glow);
+    margin: 6px auto 22px;
+    opacity: 0;
+    transform: scale(0.9);
+    animation: heartIn 900ms ease forwards;
+  }
+  @keyframes heartIn{
+    to{ opacity:1; transform: scale(1); }
+  }
+
+  .question{
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(26px, 6vw, 42px);
+    color: #f2f4f8;
+    margin: 10px 0 8px;
+    letter-spacing: 0.2px;
+  }
+  .question .name{
+    color: var(--heart);
+    font-style: italic;
+  }
+  .subline{
+    color: var(--text-dim);
+    font-size: 13.5px;
+    margin-bottom: 34px;
+  }
+
+  .buttons{
+    position: relative;
+    display:flex;
+    justify-content:center;
+    gap: 22px;
+    height: 70px;
+    align-items:center;
+  }
+  .btn{
+    font-family: inherit;
+    font-size: 15px;
+    padding: 14px 30px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: transform 120ms ease, left 160ms ease, top 160ms ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+  .btn-yes{
+    background: linear-gradient(135deg, #ff6b9d, #ff9a6b);
+    color: #150a0d;
+    font-weight: 600;
+    box-shadow: 0 0 30px rgba(255,107,157,0.35);
+  }
+  .btn-yes:hover{ transform: scale(1.06); }
+  .btn-no{
+    position:absolute;
+    background: transparent;
+    border-color: var(--line);
+    color: var(--text-dim);
+  }
+
+  #after{
+    display:none;
+    text-align:center;
+  }
+  #after.show{ display:block; animation: heartIn 700ms ease forwards; }
+  #after .big{
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: clamp(28px, 7vw, 46px);
+    color: var(--heart);
+    text-shadow: 0 0 24px var(--heart-glow);
+    margin-bottom: 14px;
+  }
+  #after p{
+    color: var(--text-dim);
+    font-size: 14px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .skip{
+    display:block;
+    margin: 18px auto 0;
+    background:none;
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    opacity: 0.6;
+  }
+  .skip:hover{ opacity:1; }
+
+  canvas#fx{
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="fx"></canvas>
+
+<div class="wrap">
+  <div class="terminal">
+    <div class="titlebar">
+      <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+      <div class="filename">~/proposal.exe — running</div>
+    </div>
+    <div class="screen" id="screen">
+      <!-- lines injected by JS -->
+
+      <div id="finale">
+        <div class="heart-ascii" id="heartAscii"></div>
+        <div class="question">Will you Stay with me Forever, <span class="name">Vanii</span>?</div>
+        <div class="subline">// no pressure. the compiler will wait forever if it has to.</div>
+
+        <div class="buttons">
+          <button class="btn btn-yes" id="yesBtn">yes()</button>
+          <button class="btn btn-no" id="noBtn" style="left:calc(50% + 70px);">no()</button>
+        </div>
+
+        <div id="after">
+          <div class="big">return true;</div>
+          <p>Every function I've ever written led back to you. Thank you for saying yes, Vanii. I'll spend every version after this one keeping this promise.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button class="skip" id="skipBtn">skip animation →</button>
+</div>
+
+<script>
+(function(){
+  const screen = document.getElementById('screen');
+  const finale = document.getElementById('finale');
+  const skipBtn = document.getElementById('skipBtn');
+
+  const heartArt =
+`      ***           ***
+   *********     *********
+ ***********************
+ ***********************
+   *******************
+      ***************
+         ***********
+            *******
+               ***
+                *`;
+
+  // Script lines: { html, delay-before-typing(ms), speed }
+  const script = [
+    {t:'<span class="c-com">// booting proposal.exe</span>', p:400},
+    {t:'<span class="c-key">import</span> <span class="c-fn">love</span> <span class="c-key">from</span> <span class="c-str">"./heart.js"</span><span class="c-plain">;</span>', p:250},
+    {t:'', p:200},
+    {t:'<span class="c-com">// target profile</span>', p:400},
+    {t:'<span class="c-key">const</span> <span class="c-fn">Vanii</span> <span class="c-plain">= {</span>', p:250},
+    {t:'&nbsp;&nbsp;<span class="c-plain">role:</span> <span class="c-str">"Computer Engineering Topper"</span><span class="c-plain">,</span>', p:180},
+    {t:'&nbsp;&nbsp;<span class="c-plain">rank:</span> <span class="c-num">1</span><span class="c-plain">,</span>', p:180},
+    {t:'&nbsp;&nbsp;<span class="c-plain">intelligence:</span> <span class="c-num">Infinity</span><span class="c-plain">,</span>', p:180},
+    {t:'&nbsp;&nbsp;<span class="c-plain">smile:</span> <span class="c-str">"undefined behavior, breaks my focus every time"</span><span class="c-plain">,</span>', p:180},
+    {t:'&nbsp;&nbsp;<span class="c-plain">effect_on_me:</span> <span class="c-str">"irreversible"</span>', p:180},
+    {t:'<span class="c-plain">};</span>', p:400},
+    {t:'', p:250},
+    {t:'<span class="c-com">// 30 years from now, this line still won\'t need refactoring</span>', p:500},
+    {t:'<span class="c-key">function</span> <span class="c-fn">whyYou</span><span class="c-plain">() {</span>', p:250},
+    {t:'&nbsp;&nbsp;<span class="c-key">return</span> <span class="c-plain">[</span>', p:180},
+    {t:'&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-str">"you debug my worst days without being asked"</span><span class="c-plain">,</span>', p:180},
+    {t:'&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-str">"you\'re brilliant and never make anyone feel small for not being"</span><span class="c-plain">,</span>', p:180},
+    {t:'&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-str">"every version of my future has you in it"</span>', p:180},
+    {t:'&nbsp;&nbsp;<span class="c-plain">];</span>', p:180},
+    {t:'<span class="c-plain">}</span>', p:400},
+    {t:'', p:250},
+    {t:'<span class="c-com">// compiling feelings.cpp ...</span>', p:600},
+    {t:'<span class="c-com">// 0 errors, 0 warnings, 1 heart fully allocated</span>', p:600},
+    {t:'', p:300},
+    {t:'<span class="c-fn">love</span><span class="c-plain">.</span><span class="c-fn">render</span><span class="c-plain">(Vanii);</span>', p:400},
+  ];
+
+  let i = 0;
+  function typeNext(){
+    if(i >= script.length){
+      finishBoot();
+      return;
+    }
+    const item = script[i];
+    const div = document.createElement('div');
+    div.className = 'line';
+    div.innerHTML = item.t + (i === script.length-1 ? '<span class="caret"></span>' : '');
+    screen.insertBefore(div, finale);
+    requestAnimationFrame(()=> div.classList.add('show'));
+    i++;
+    setTimeout(typeNext, item.p);
+  }
+
+  function finishBoot(){
+    setTimeout(()=>{
+      finale.classList.add('show');
+      document.getElementById('heartAscii').textContent = heartArt;
+      finale.scrollIntoView({behavior:'smooth', block:'center'});
+    }, 500);
+  }
+
+  function skipAll(){
+    screen.querySelectorAll('.line').forEach(l => l.remove());
+    script.forEach(item=>{
+      const div = document.createElement('div');
+      div.className = 'line show';
+      div.innerHTML = item.t;
+      screen.insertBefore(div, finale);
+    });
+    finishBoot();
+  }
+
+  skipBtn.addEventListener('click', skipAll);
+  typeNext();
+
+  // ---- No button dodges ----
+  const noBtn = document.getElementById('noBtn');
+  const yesBtn = document.getElementById('yesBtn');
+  const buttonsBox = document.querySelector('.buttons');
+
+  function dodge(){
+    // Switch to viewport-fixed positioning on first dodge so the button
+    // can never get clipped by the terminal's overflow:hidden, and always
+    // stays fully reachable/visible on small phone screens.
+    const btnW = noBtn.offsetWidth || 90, btnH = noBtn.offsetHeight || 44;
+    const margin = 16;
+    const maxX = Math.max(window.innerWidth - btnW - margin*2, 10);
+    const maxY = Math.max(window.innerHeight - btnH - margin*2, 10);
+    const x = margin + Math.random() * maxX;
+    const y = margin + Math.random() * maxY;
+
+    if(noBtn.style.position !== 'fixed'){
+      noBtn.style.position = 'fixed';
+      noBtn.style.zIndex = '60';
+    }
+    noBtn.style.left = x + 'px';
+    noBtn.style.top = y + 'px';
+  }
+  noBtn.addEventListener('mouseenter', dodge);
+  noBtn.addEventListener('mouseover', dodge);
+  // On touch devices there's no hover, so the first tap should dodge
+  // instead of registering as a click. pointerdown fires before click
+  // and works reliably across Android browsers.
+  noBtn.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    dodge();
+  });
+  noBtn.addEventListener('touchstart', function(e){ e.preventDefault(); dodge(); }, {passive:false});
+  // Safety net: if a click ever slips through, treat it as another dodge
+  // rather than doing nothing.
+  noBtn.addEventListener('click', function(e){ e.preventDefault(); dodge(); });
+
+  // ---- Yes -> celebration ----
+  const canvas = document.getElementById('fx');
+  const ctx = canvas.getContext('2d');
+  function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; }
+  resize(); addEventListener('resize', resize);
+
+  let particles = [];
+  function burst(){
+    for(let k=0;k<140;k++){
+      particles.push({
+        x: canvas.width/2,
+        y: canvas.height*0.4,
+        vx: (Math.random()-0.5)*10,
+        vy: (Math.random()-1.2)*10,
+        g: 0.25,
+        size: 4 + Math.random()*5,
+        life: 100 + Math.random()*40,
+        color: ['#ff6b9d','#ff9a6b','#5ad8ff','#7ee3a3','#ffd479'][Math.floor(Math.random()*5)],
+        shape: Math.random() < 0.35 ? 'heart' : 'rect'
+      });
+    }
+  }
+  function drawHeart(x,y,s,color){
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.scale(s/10, s/10);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0,3);
+    ctx.bezierCurveTo(0,-2,-6,-2,-6,2);
+    ctx.bezierCurveTo(-6,6,0,9,0,12);
+    ctx.bezierCurveTo(0,9,6,6,6,2);
+    ctx.bezierCurveTo(6,-2,0,-2,0,3);
+    ctx.fill();
+    ctx.restore();
+  }
+  function tick(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      p.vy += p.g;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= 1;
+      ctx.globalAlpha = Math.max(p.life/120, 0);
+      if(p.shape === 'heart'){
+        drawHeart(p.x, p.y, p.size, p.color);
+      } else {
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+      }
+    });
+    ctx.globalAlpha = 1;
+    particles = particles.filter(p => p.life > 0 && p.y < canvas.height + 40);
+    requestAnimationFrame(tick);
+  }
+  tick();
+
+  yesBtn.addEventListener('click', function(){
+    burst();
+    setTimeout(burst, 250);
+    setTimeout(burst, 550);
+    document.querySelector('.buttons').style.display = 'none';
+    document.querySelector('.question').style.display = 'none';
+    document.querySelector('.subline').style.display = 'none';
+    document.getElementById('after').classList.add('show');
+  });
+})();
+</script>
+
+</body>
+</html>
